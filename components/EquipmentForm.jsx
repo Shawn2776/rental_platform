@@ -1,27 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function EquipmentForm({
   existingData = null,
   onSubmitSuccess,
 }) {
-  const [name, setName] = useState(existingData?.name || "");
-  const [description, setDescription] = useState(
-    existingData?.description || ""
-  );
-  const [pricePerDay, setPricePerDay] = useState(
-    existingData?.price_per_day || ""
-  );
-  const [available, setAvailable] = useState(existingData?.available || true);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [pricePerDay, setPricePerDay] = useState("");
+  const [available, setAvailable] = useState(true);
 
-  const isEditing = !!existingData;
+  // Update form state when existingData changes
+  useEffect(() => {
+    if (existingData) {
+      setName(existingData.name || "");
+      setDescription(existingData.description || "");
+      setPricePerDay(existingData.price_per_day || "");
+      setAvailable(existingData.available || false);
+    }
+  }, [existingData]);
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const apiEndpoint = isEditing ? `/api/equipment` : `/api/equipment`;
-    const method = isEditing ? "PUT" : "POST";
+    const apiEndpoint = existingData ? `/api/equipment` : `/api/equipment`;
+    const method = existingData ? "PUT" : "POST";
 
     const body = {
       name,
@@ -30,7 +34,7 @@ export default function EquipmentForm({
       available,
     };
 
-    if (isEditing) {
+    if (existingData) {
       body.id = existingData.id; // Include the ID for editing
     }
 
@@ -45,63 +49,85 @@ export default function EquipmentForm({
     if (response.ok) {
       const result = await response.json();
       alert(
-        isEditing
+        existingData
           ? "Equipment updated successfully!"
           : "Equipment added successfully!"
       );
-      onSubmitSuccess(result); // Notify parent of successful submission
+      onSubmitSuccess(result);
+      if (!existingData) {
+        // Reset form fields after adding
+        setName("");
+        setDescription("");
+        setPricePerDay("");
+        setAvailable(true);
+      }
     } else {
       alert("Error saving equipment.");
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border rounded">
-      <h2>{isEditing ? "Edit Equipment" : "Add Equipment"}</h2>
-      <div>
-        <label htmlFor="name">Name</label>
+    <form
+      onSubmit={handleSubmit}
+      className="p-6 bg-base-100 shadow-md rounded-md"
+    >
+      <h2 className="text-2xl font-bold mb-4">
+        {existingData ? "Edit Equipment" : "Add Equipment"}
+      </h2>
+      <div className="form-control mb-4">
+        <label htmlFor="name" className="label">
+          <span className="label-text">Name</span>
+        </label>
         <input
           type="text"
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          className="border p-2 w-full"
+          className="input input-bordered w-full"
         />
       </div>
-      <div>
-        <label htmlFor="description">Description</label>
+      <div className="form-control mb-4">
+        <label htmlFor="description" className="label">
+          <span className="label-text">Description</span>
+        </label>
         <textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="border p-2 w-full"
+          className="textarea textarea-bordered w-full"
         />
       </div>
-      <div>
-        <label htmlFor="pricePerDay">Price Per Day ($)</label>
+      <div className="form-control mb-4">
+        <label htmlFor="pricePerDay" className="label">
+          <span className="label-text">Price Per Day ($)</span>
+        </label>
         <input
           type="number"
           id="pricePerDay"
           value={pricePerDay}
           onChange={(e) => setPricePerDay(e.target.value)}
+          step="any" // Allows decimal numbers
           required
-          className="border p-2 w-full"
+          className="input input-bordered w-full"
         />
       </div>
-      <div>
-        <label>
+      <div className="form-control mb-6">
+        <label className="label cursor-pointer">
+          <span className="label-text">Available</span>
           <input
             type="checkbox"
             checked={available}
             onChange={(e) => setAvailable(e.target.checked)}
+            className="checkbox checkbox-primary"
           />
-          Available
         </label>
       </div>
-      <button type="submit" className="bg-blue-500 text-white p-2 rounded mt-4">
-        {isEditing ? "Update Equipment" : "Add Equipment"}
-      </button>
+      <div className="form-control">
+        <button type="submit" className="btn btn-primary">
+          {existingData ? "Update Equipment" : "Add Equipment"}
+        </button>
+      </div>
     </form>
   );
 }
